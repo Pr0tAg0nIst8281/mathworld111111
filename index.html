@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math World: Legend of Numbers</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    body {
+      margin: 0;
+      background-color: #101010;
+      font-family: "Press Start 2P", monospace;
+      color: #fff;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      display: block;
+      margin: auto;
+      background: linear-gradient(#202040, #101010);
+      border: 3px solid #00ffcc;
+    }
+    #title, #classSelect {
+      position: absolute;
+      top: 30%;
+      width: 100%;
+      text-align: center;
+      font-size: 18px;
+      animation: fadeIn 2s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    #startButton, #nextButton {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 12px 30px;
+      background: #2e8b57;
+      color: white;
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: background 0.3s;
+    }
+    #startButton:hover, #nextButton:hover {
+      background: #3cb371;
+    }
+    #questionBox {
+      display: none;
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid #00ffcc;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    #credits {
+      position: absolute;
+      bottom: 5px;
+      right: 10px;
+      font-size: 10px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="title">Math World: Legend of Numbers</div>
+
+  <div id="classSelect" style="display:none;">
+    Choose your class level:<br><br>
+    <select id="classLevel">
+      <option value="1">Class 1</option>
+      <option value="2">Class 2</option>
+      <option value="3">Class 3</option>
+      <option value="4">Class 4</option>
+      <option value="5">Class 5</option>
+      <option value="6">Class 6</option>
+      <option value="7">Class 7</option>
+      <option value="8">Class 8</option>
+      <option value="9">Class 9</option>
+      <option value="10">Class 10</option>
+    </select><br><br>
+    <button id="nextButton">Continue</button>
+  </div>
+
+  <button id="startButton">Start Game</button>
+
+  <div id="questionBox">
+    <div id="questionText"></div>
+    <input type="number" id="answerInput" placeholder="Your answer">
+    <button id="submitAnswer">Submit</button>
+    <div id="feedback"></div>
+  </div>
+
+  <div id="credits">Created by Adhrith, Ayaz, and Vinayak — Music by AI</div>
+
+  <audio id="bgm" loop>
+    <source src="assets/music/calm-ambient.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startButton = document.getElementById('startButton');
+    const nextButton = document.getElementById('nextButton');
+    const classSelect = document.getElementById('classSelect');
+    const title = document.getElementById('title');
+    const questionBox = document.getElementById('questionBox');
+    const questionText = document.getElementById('questionText');
+    const feedback = document.getElementById('feedback');
+    const bgm = document.getElementById('bgm');
+    const answerInput = document.getElementById('answerInput');
+    const submitAnswer = document.getElementById('submitAnswer');
+
+    let player = { x: 380, y: 280, speed: 3 };
+    let keys = {};
+    let started = false;
+    let classLevel = 1;
+    let currentQuestion = null;
+    let score = 0;
+
+    document.addEventListener('keydown', e => keys[e.key] = true);
+    document.addEventListener('keyup', e => keys[e.key] = false);
+
+    startButton.onclick = () => {
+      startButton.style.display = 'none';
+      title.style.display = 'none';
+      classSelect.style.display = 'block';
+    };
+
+    nextButton.onclick = () => {
+      classLevel = parseInt(document.getElementById('classLevel').value);
+      classSelect.style.display = 'none';
+      bgm.volume = 0.4;
+      bgm.play().catch(()=>{});
+      started = true;
+      update();
+    };
+
+    function drawPlayer() {
+      ctx.fillStyle = '#00ff99';
+      ctx.fillRect(player.x, player.y, 20, 20);
+    }
+
+    function drawWorld() {
+      for (let i = 0; i < canvas.width; i += 40) {
+        for (let j = 0; j < canvas.height; j += 40) {
+          ctx.strokeStyle = "rgba(0,255,204,0.1)";
+          ctx.strokeRect(i, j, 40, 40);
+        }
+      }
+    }
+
+    function generateQuestion(level) {
+      const max = 10 + level * 5;
+      let a = Math.floor(Math.random() * max);
+      let b = Math.floor(Math.random() * max);
+      let op = ["+", "-", "*", "/"][Math.floor(Math.random() * Math.min(4, level/2+1))];
+      let question = `${a} ${op} ${b}`;
+      let answer = Math.floor(eval(question));
+      return { question, answer };
+    }
+
+    function askQuestion() {
+      currentQuestion = generateQuestion(classLevel);
+      questionText.textContent = "Solve: " + currentQuestion.question;
+      questionBox.style.display = 'block';
+    }
+
+    submitAnswer.onclick = () => {
+      const ans = parseInt(answerInput.value);
+      if (ans === currentQuestion.answer) {
+        feedback.textContent = "✅ Correct! Great job!";
+        feedback.style.color = "#00ff99";
+        score++;
+        setTimeout(() => {
+          questionBox.style.display = 'none';
+          feedback.textContent = "";
+        }, 1000);
+      } else {
+        feedback.textContent = "❌ Try again!";
+        feedback.style.color = "#ff4444";
+      }
+      answerInput.value = "";
+    };
+
+    function update() {
+      if (!started) return;
+
+      if (keys['ArrowUp']) player.y -= player.speed;
+      if (keys['ArrowDown']) player.y += player.speed;
+      if (keys['ArrowLeft']) player.x -= player.speed;
+      if (keys['ArrowRight']) player.x += player.speed;
+
+      player.x = Math.max(0, Math.min(player.x, canvas.width - 20));
+      player.y = Math.max(0, Math.min(player.y, canvas.height - 20));
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawWorld();
+      drawPlayer();
+
+      if (Math.random() < 0.005 && questionBox.style.display === 'none') {
+        askQuestion();
+      }
+
+      requestAnimationFrame(update);
+    }
+  </script>
+</body>
+</html>
