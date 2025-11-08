@@ -1,248 +1,355 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Math World: Legend of Numbers</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      font-family: 'Press Start 2P', monospace;
-      overflow: hidden;
-      color: #fff;
-    }
-    canvas {
-      display: block;
-      margin: auto;
-      background: linear-gradient(#003, #001);
-      border: 3px solid #00ffaa;
-    }
-    .fade {
-      animation: fadeIn 2s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    #menu, #classSelect, #questionBox, #creditsScreen, #howToPlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      text-align: center;
-    }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-family: inherit;
-      font-size: 12px;
-      color: #fff;
-      background: #007755;
-      border: 2px solid #00ffaa;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button:hover { background: #00aa77; }
-    #credits {
-      position: absolute;
-      bottom: 5px;
-      right: 10px;
-      font-size: 10px;
-      color: #aaa;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Math Quest Enhanced Prototype</title>
+<style>
+  body {
+    margin: 0; background: #222; color: #eee; font-family: monospace;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    height: 100vh;
+  }
+  #gameCanvas {
+    background: #88c070; image-rendering: pixelated; margin-top: 20px;
+    border: 3px solid #444; image-rendering: crisp-edges;
+  }
+  #ui {
+    width: 320px; margin: 10px auto; text-align: center; font-size: 16px;
+  }
+  #questionBox {
+    background: #444; padding: 10px; border: 2px solid #666; margin-top: 10px;
+  }
+  #answerInput {
+    font-size: 16px; width: 100px; padding: 5px; margin-top: 5px;
+  }
+  #submitBtn {
+    font-size: 16px; padding: 5px 10px; margin-left: 5px;
+    cursor: pointer;
+  }
+  #feedback {
+    margin-top: 10px; min-height: 24px;
+  }
+  select, button {
+    font-size: 16px; padding: 5px 8px; margin-left: 5px;
+  }
+</style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-  <!-- Main Menu -->
-  <div id="menu" class="fade" style="display:flex;">
-    <h1>Math World: Legend of Numbers</h1>
-    <button onclick="showClassSelect()">Play</button>
-    <button onclick="showHowToPlay()">How to Play</button>
-    <button onclick="showCredits()">Credits</button>
-  </div>
+<canvas id="gameCanvas" width="320" height="320"></canvas>
 
-  <!-- Class Selection -->
-  <div id="classSelect">
-    <h2>Choose your class level</h2>
-    <select id="classLevel">
-      <option value="1">Class 1</option>
-      <option value="2">Class 2</option>
-      <option value="3">Class 3</option>
-      <option value="4">Class 4</option>
-      <option value="5">Class 5</option>
-      <option value="6">Class 6</option>
-      <option value="7">Class 7</option>
-      <option value="8">Class 8</option>
-      <option value="9">Class 9</option>
-      <option value="10">Class 10</option>
+<div id="ui">
+  <div>
+    Grade Level:
+    <select id="gradeSelect">
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+      <option value="10">10</option><option value="11">11</option><option value="12">12</option>
     </select>
-    <button onclick="startGame()">Start Adventure</button>
+    <button id="startBtn">Start Quest</button>
   </div>
 
-  <!-- Question Box -->
-  <div id="questionBox">
-    <div id="questionText"></div>
-    <input id="answerInput" type="number" placeholder="Your answer">
-    <button id="submitAnswer">Submit</button>
+  <div id="questionBox" style="display:none;">
+    <div id="npcText">Walk next to the NPC and start a quest!</div>
+    <input type="text" id="answerInput" autocomplete="off" />
+    <button id="submitBtn">Submit</button>
     <div id="feedback"></div>
   </div>
+</div>
 
-  <!-- How to Play -->
-  <div id="howToPlay">
-    <h2>How to Play</h2>
-    <p>Use arrow keys to move your character.<br>
-    Randomly, you’ll face math challenges.<br>
-    Answer correctly to gain points and progress!</p>
-    <button onclick="backToMenu()">Back</button>
-  </div>
+<audio id="bgMusic" loop>
+  <source src="https://protoinfrastack.ivondy.com/media/EHEPsX7rUfWLJiaKnTq4718wa7FxxNd4X3b4.mp3" type="audio/mpeg" />
+  Your browser does not support the audio element.
+</audio>
 
-  <!-- Credits -->
-  <div id="creditsScreen">
-    <h2>Credits</h2>
-    <p>Created by Adhrith, Ayaz, and Vinayak<br>
-    Music by AI</p>
-    <button onclick="backToMenu()">Back</button>
-  </div>
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
 
-  <div id="credits">© 2025 Math World</div>
+  const tileSize = 32;
+  const mapWidth = 10;
+  const mapHeight = 10;
 
-  <audio id="bgm" loop>
-    <source src="assets/music/calm-ambient.mp3" type="audio/mpeg">
-  </audio>
+  // Tile map: 0=grass,1=path
+  const map = [
+    0,0,0,0,0,0,0,0,0,0,
+    0,1,1,1,0,0,0,1,1,0,
+    0,1,0,1,0,0,0,1,0,0,
+    0,1,0,1,1,1,1,1,0,0,
+    0,1,0,0,0,0,0,0,0,0,
+    0,1,1,1,0,0,0,0,0,0,
+    0,0,0,1,0,0,0,0,0,0,
+    0,0,0,1,1,1,1,1,0,0,
+    0,0,0,0,0,0,0,1,0,0,
+    0,0,0,0,0,0,0,0,0,0,
+  ];
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const bgm = document.getElementById("bgm");
-    const menu = document.getElementById("menu");
-    const classSelect = document.getElementById("classSelect");
-    const howToPlay = document.getElementById("howToPlay");
-    const creditsScreen = document.getElementById("creditsScreen");
-    const questionBox = document.getElementById("questionBox");
-    const questionText = document.getElementById("questionText");
-    const feedback = document.getElementById("feedback");
-    const submitAnswer = document.getElementById("submitAnswer");
-    const answerInput = document.getElementById("answerInput");
+  // Player sprite data (32x32 pixels)
+  // Simple pixel art: green shirt, brown hair, skin tone
+  function drawPlayer(x, y) {
+    const px = x * tileSize;
+    const py = y * tileSize;
 
-    let player = {x: 380, y: 280, speed: 3};
-    let keys = {};
-    let currentQuestion = null;
-    let classLevel = 1;
-    let score = 0;
-    let started = false;
+    // Body
+    ctx.fillStyle = '#2d662d';
+    ctx.fillRect(px + 8, py + 12, 16, 16);
+    // Head
+    ctx.fillStyle = '#f1c27d';
+    ctx.fillRect(px + 12, py + 4, 8, 8);
+    // Hair
+    ctx.fillStyle = '#5c3a21';
+    ctx.fillRect(px + 12, py + 2, 8, 4);
+    // Eyes
+    ctx.fillStyle = '#000';
+    ctx.fillRect(px + 14, py + 6, 2, 2);
+    ctx.fillRect(px + 18, py + 6, 2, 2);
+  }
 
-    document.addEventListener("keydown", e => keys[e.key] = true);
-    document.addEventListener("keyup", e => keys[e.key] = false);
+  // NPC sprite data (32x32 pixels)
+  // Red shirt, glasses
+  function drawNPC(x, y) {
+    const px = x * tileSize;
+    const py = y * tileSize;
 
-    function showClassSelect() {
-      menu.style.display = "none";
-      classSelect.style.display = "flex";
-    }
-    function showHowToPlay() {
-      menu.style.display = "none";
-      howToPlay.style.display = "flex";
-    }
-    function showCredits() {
-      menu.style.display = "none";
-      creditsScreen.style.display = "flex";
-    }
-    function backToMenu() {
-      howToPlay.style.display = "none";
-      creditsScreen.style.display = "none";
-      menu.style.display = "flex";
-    }
+    // Body
+    ctx.fillStyle = '#8b1a1a';
+    ctx.fillRect(px + 8, py + 12, 16, 16);
+    // Head
+    ctx.fillStyle = '#f1c27d';
+    ctx.fillRect(px + 12, py + 4, 8, 8);
+    // Hair
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(px + 12, py + 2, 8, 4);
+    // Glasses
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px + 13, py + 5, 6, 4);
+    ctx.beginPath();
+    ctx.moveTo(px + 13, py + 7);
+    ctx.lineTo(px + 19, py + 7);
+    ctx.stroke();
+  }
 
-    function startGame() {
-      classLevel = parseInt(document.getElementById("classLevel").value);
-      classSelect.style.display = "none";
-      started = true;
-      try {
-        bgm.volume = 0.4;
-        bgm.play().catch(err => console.log("Music blocked:", err));
-      } catch(e) {
-        console.log("No music loaded");
+  // Draw tile map
+  function drawMap() {
+    for(let y=0; y<mapHeight; y++) {
+      for(let x=0; x<mapWidth; x++) {
+        const tile = map[y*mapWidth + x];
+        if(tile === 0) {
+          ctx.fillStyle = '#88c070'; // grass
+        } else {
+          ctx.fillStyle = '#d2b48c'; // path
+        }
+        ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
       }
-      update();
     }
+  }
 
-    function drawBackground() {
-      ctx.fillStyle = "#002";
-      ctx.fillRect(0,0,800,600);
-      for (let i = 0; i < 40; i++) {
-        ctx.fillStyle = "#003300";
-        ctx.fillRect(i*20, 550, 20, 50);
+  // Player position
+  let playerPos = {x:1, y:1};
+  const npcPos = {x:3, y:3};
+
+  // Game state
+  let inQuest = false;
+  let currentQuestion = '';
+  let currentAnswer = null;
+  let difficultyLevel = 1;
+  let gradeLevel = 1;
+
+  // HTML elements
+  const gradeSelect = document.getElementById('gradeSelect');
+  const startBtn = document.getElementById('startBtn');
+  const questionBox = document.getElementById('questionBox');
+  const npcText = document.getElementById('npcText');
+  const answerInput = document.getElementById('answerInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const feedback = document.getElementById('feedback');
+  const bgMusic = document.getElementById('bgMusic');
+
+  // Draw everything
+  function draw() {
+    drawMap();
+    drawNPC(npcPos.x, npcPos.y);
+    drawPlayer(playerPos.x, playerPos.y);
+  }
+
+  // Check if player can move to tile
+  function canMove(x,y) {
+    if(x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) return false;
+    return map[y*mapWidth + x] === 1;
+  }
+
+  // Handle keyboard input for movement
+  window.addEventListener('keydown', (e) => {
+    if(inQuest) return; // disable movement during quest
+
+    let newX = playerPos.x;
+    let newY = playerPos.y;
+
+    if(e.key === 'ArrowUp') newY--;
+    else if(e.key === 'ArrowDown') newY++;
+    else if(e.key === 'ArrowLeft') newX--;
+    else if(e.key === 'ArrowRight') newX++;
+
+    if(canMove(newX,newY)) {
+      playerPos.x = newX;
+      playerPos.y = newY;
+      draw();
+      checkNpcProximity();
+    }
+  });
+
+  // Check if player is next to NPC
+  function checkNpcProximity() {
+    const dx = Math.abs(playerPos.x - npcPos.x);
+    const dy = Math.abs(playerPos.y - npcPos.y);
+    if((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+      npcText.textContent = 'Press "Start Quest" to get a math challenge!';
+    } else {
+      npcText.textContent = 'Walk next to the NPC and start a quest!';
+      if(inQuest) {
+        // If player walks away during quest, cancel quest
+        endQuest();
       }
-      ctx.fillStyle = "#00ff88";
-      ctx.fillRect(0,580,800,20);
+    }
+  }
+
+  // Generate math question based on grade and difficulty
+  function generateQuestion(grade, difficulty) {
+    const topics = getTopicsForGrade(grade);
+    const topic = topics[Math.floor(Math.random() * topics.length)];
+
+    function randInt(min,max) {
+      return Math.floor(Math.random()*(max-min+1)) + min;
     }
 
-    function drawPlayer() {
-      ctx.fillStyle = "#00ffcc";
-      ctx.fillRect(player.x, player.y, 20, 20);
+    if(topic === 'addition') {
+      const a = randInt(difficulty*1, difficulty*10);
+      const b = randInt(difficulty*1, difficulty*10);
+      return {question: `What is ${a} + ${b}?`, answer: a+b};
     }
-
-    function generateQuestion(level) {
-      const max = 10 + level * 5;
-      const a = Math.floor(Math.random() * max);
-      const b = Math.floor(Math.random() * max);
-      const ops = ["+", "-", "*", "/"];
-      const op = ops[Math.floor(Math.random() * Math.min(ops.length, level/2+1))];
-      let ans = Math.floor(eval(`${a} ${op} ${b}`));
-      return {question: `${a} ${op} ${b}`, answer: ans};
+    if(topic === 'subtraction') {
+      const a = randInt(difficulty*5, difficulty*15);
+      const b = randInt(difficulty*1, a);
+      return {question: `What is ${a} - ${b}?`, answer: a-b};
     }
-
-    function askQuestion() {
-      currentQuestion = generateQuestion(classLevel);
-      questionText.textContent = "Solve: " + currentQuestion.question;
-      questionBox.style.display = "flex";
+    if(topic === 'multiplication') {
+      const a = randInt(1, difficulty*5);
+      const b = randInt(1, difficulty*5);
+      return {question: `What is ${a} × ${b}?`, answer: a*b};
     }
+    if(topic === 'division') {
+      const b = randInt(1, difficulty*5);
+      const answer = randInt(1, difficulty*5);
+      const a = b * answer;
+      return {question: `What is ${a} ÷ ${b}?`, answer: answer};
+    }
+    if(topic === 'fractions') {
+      const numerator = randInt(1, difficulty*3);
+      const denominator = randInt(numerator+1, difficulty*6);
+      const question = `What is ${numerator}/${denominator} + ${numerator}/${denominator}? (Write as fraction)`;
+      const answer = `${numerator*2}/${denominator}`;
+      return {question, answer};
+    }
+    if(topic === 'decimals') {
+      const a = (Math.random() * difficulty * 10).toFixed(2);
+      const b = (Math.random() * difficulty * 10).toFixed(2);
+      const question = `What is ${a} + ${b}? (Round to 2 decimals)`;
+      const answer = (parseFloat(a) + parseFloat(b)).toFixed(2);
+      return {question, answer};
+    }
+    return {question: "What is 1 + 1?", answer: 2};
+  }
 
-    submitAnswer.onclick = () => {
-      const ans = parseInt(answerInput.value);
-      if (ans === currentQuestion.answer) {
-        feedback.textContent = "✅ Correct!";
-        feedback.style.color = "#00ff99";
-        score++;
-        setTimeout(() => {
-          questionBox.style.display = "none";
-          feedback.textContent = "";
-        }, 800);
+  // Topics by grade
+  function getTopicsForGrade(grade) {
+    if(grade >= 1 && grade <= 3) return ['addition','subtraction'];
+    if(grade >= 4 && grade <= 5) return ['addition','subtraction','multiplication'];
+    if(grade >= 6 && grade <= 8) return ['addition','subtraction','multiplication','division','fractions','decimals'];
+    if(grade >= 9 && grade <= 12) return ['addition','subtraction','multiplication','division','fractions','decimals'];
+    return ['addition'];
+  }
+
+  // Start quest button handler
+  startBtn.onclick = () => {
+    const dx = Math.abs(playerPos.x - npcPos.x);
+    const dy = Math.abs(playerPos.y - npcPos.y);
+    if(!((dx === 1 && dy === 0) || (dx === 0 && dy === 1))) {
+      alert('Walk next to the NPC to start a quest!');
+      return;
+    }
+    gradeLevel = parseInt(gradeSelect.value);
+    difficultyLevel = 1;
+    startQuest();
+  };
+
+  // Start quest
+  function startQuest() {
+    inQuest = true;
+    questionBox.style.display = 'block';
+    setNewQuestion();
+    answerInput.focus();
+  }
+
+  // End quest
+  function endQuest() {
+    inQuest = false;
+    questionBox.style.display = 'none';
+    feedback.textContent = '';
+    npcText.textContent = 'Walk next to the NPC and start a quest!';
+  }
+
+  // Set new question
+  function setNewQuestion() {
+    const q = generateQuestion(gradeLevel, difficultyLevel);
+    currentQuestion = q.question;
+    currentAnswer = q.answer;
+    npcText.textContent = currentQuestion;
+    answerInput.value = '';
+    feedback.textContent = '';
+  }
+
+  // Submit answer handler
+  submitBtn.onclick = () => {
+    let playerAnswer = answerInput.value.trim();
+    if(!playerAnswer) {
+      feedback.textContent = 'Please enter an answer.';
+      return;
+    }
+    if(currentAnswer.toString().includes('/')) {
+      if(playerAnswer === currentAnswer) {
+        feedback.textContent = 'Correct! Next question is harder.';
+        difficultyLevel++;
+        setTimeout(setNewQuestion, 1500);
       } else {
-        feedback.textContent = "❌ Try again!";
-        feedback.style.color = "#ff4444";
+        feedback.textContent = 'Incorrect. Try again.';
       }
-      answerInput.value = "";
-    };
-
-    function update() {
-      if (!started) return;
-      ctx.clearRect(0,0,800,600);
-      drawBackground();
-      drawPlayer();
-
-      if (keys["ArrowUp"]) player.y -= player.speed;
-      if (keys["ArrowDown"]) player.y += player.speed;
-      if (keys["ArrowLeft"]) player.x -= player.speed;
-      if (keys["ArrowRight"]) player.x += player.speed;
-
-      player.x = Math.max(0, Math.min(player.x, 780));
-      player.y = Math.max(0, Math.min(player.y, 580));
-
-      if (Math.random() < 0.005 && questionBox.style.display === "none") {
-        askQuestion();
+    } else {
+      const numAnswer = parseFloat(playerAnswer);
+      if(!isNaN(numAnswer) && Math.abs(numAnswer - currentAnswer) < 0.01) {
+        feedback.textContent = 'Correct! Next question is harder.';
+        difficultyLevel++;
+        setTimeout(setNewQuestion, 1500);
+      } else {
+        feedback.textContent = 'Incorrect. Try again.';
       }
-
-      requestAnimationFrame(update);
     }
-  </script>
+  };
+
+  // Start background music on user interaction
+  window.addEventListener('click', () => {
+    if(bgMusic.paused) {
+      bgMusic.volume = 0.2;
+      bgMusic.play();
+    }
+  }, {once:true});
+
+  // Initial draw
+  draw();
+  checkNpcProximity();
+</script>
+
 </body>
 </html>
