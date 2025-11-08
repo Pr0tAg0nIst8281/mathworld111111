@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Math Quest Enhanced Prototype</title>
+<title>Math Quest Full Prototype</title>
 <style>
   body {
     margin: 0; background: #222; color: #eee; font-family: monospace;
@@ -13,31 +13,46 @@
   #gameCanvas {
     background: #88c070; image-rendering: pixelated; margin-top: 20px;
     border: 3px solid #444; image-rendering: crisp-edges;
+    image-rendering: pixelated;
   }
   #ui {
-    width: 320px; margin: 10px auto; text-align: center; font-size: 16px;
+    width: 640px; margin: 10px auto; text-align: center; font-size: 18px;
   }
   #questionBox {
-    background: #444; padding: 10px; border: 2px solid #666; margin-top: 10px;
+    background: #444; padding: 15px; border: 2px solid #666; margin-top: 10px;
   }
   #answerInput {
-    font-size: 16px; width: 100px; padding: 5px; margin-top: 5px;
+    font-size: 18px; width: 120px; padding: 6px; margin-top: 5px;
   }
-  #submitBtn {
-    font-size: 16px; padding: 5px 10px; margin-left: 5px;
+  #submitBtn, #startBtn {
+    font-size: 18px; padding: 6px 12px; margin-left: 10px;
     cursor: pointer;
   }
   #feedback {
-    margin-top: 10px; min-height: 24px;
+    margin-top: 12px; min-height: 28px;
   }
-  select, button {
-    font-size: 16px; padding: 5px 8px; margin-left: 5px;
+  #charSelect {
+    margin-top: 10px;
+    display: flex; justify-content: center; gap: 20px;
+  }
+  .charOption {
+    cursor: pointer;
+    border: 3px solid transparent;
+    padding: 4px;
+    transition: border-color 0.3s;
+  }
+  .charOption.selected {
+    border-color: #ffd700;
+  }
+  .charOption img {
+    width: 64px; height: 64px; image-rendering: pixelated;
+    display: block;
   }
 </style>
 </head>
 <body>
 
-<canvas id="gameCanvas" width="320" height="320"></canvas>
+<canvas id="gameCanvas" width="640" height="480"></canvas>
 
 <div id="ui">
   <div>
@@ -48,11 +63,16 @@
       <option value="7">7</option><option value="8">8</option><option value="9">9</option>
       <option value="10">10</option><option value="11">11</option><option value="12">12</option>
     </select>
-    <button id="startBtn">Start Quest</button>
   </div>
 
+  <div id="charSelect" title="Choose your character">
+    <!-- Character options inserted by JS -->
+  </div>
+
+  <button id="startBtn">Start Quest</button>
+
   <div id="questionBox" style="display:none;">
-    <div id="npcText">Walk next to the NPC and start a quest!</div>
+    <div id="npcText">Walk next to an NPC and start a quest!</div>
     <input type="text" id="answerInput" autocomplete="off" />
     <button id="submitBtn">Submit</button>
     <div id="feedback"></div>
@@ -69,70 +89,100 @@
   const ctx = canvas.getContext('2d');
 
   const tileSize = 32;
-  const mapWidth = 10;
-  const mapHeight = 10;
+  const mapWidth = 20;
+  const mapHeight = 15;
 
-  // Tile map: 0=grass,1=path
+  // Larger map: 0=grass,1=path
+  // Simple town + path layout for demo
   const map = [
-    0,0,0,0,0,0,0,0,0,0,
-    0,1,1,1,0,0,0,1,1,0,
-    0,1,0,1,0,0,0,1,0,0,
-    0,1,0,1,1,1,1,1,0,0,
-    0,1,0,0,0,0,0,0,0,0,
-    0,1,1,1,0,0,0,0,0,0,
-    0,0,0,1,0,0,0,0,0,0,
-    0,0,0,1,1,1,1,1,0,0,
-    0,0,0,0,0,0,0,1,0,0,
-    0,0,0,0,0,0,0,0,0,0,
+    // 20 x 15 tiles total
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,1,1,1,0,0,0,1,1,1,1,1,1,0,0,0,1,1,1,0,
+    0,1,0,1,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1,0,
+    0,1,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,1,0,
+    0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,
+    0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,
+    0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,
+    0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,0,
+    0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   ];
 
-  // Player sprite data (32x32 pixels)
-  // Simple pixel art: green shirt, brown hair, skin tone
-  function drawPlayer(x, y) {
-    const px = x * tileSize;
-    const py = y * tileSize;
+  // Player characters from references
+  const characters = [
+    {name: "Boy with Hat", img: "https://protoinfrastack.ivondy.com/media/F82mVzbClLf4rwQ5IuZBVXaEDCnx2VrgBJbS.png"},
+    {name: "Girl with Glasses", img: "https://protoinfrastack.ivondy.com/media/YiMbe81r2qFTOqc3vqM1EnEnfzXT14Wd686Q.png"},
+    {name: "Boy Backpack", img: "https://protoinfrastack.ivondy.com/media/0DKTRDeVCZ7baJm1lrih1v4x5W8K6VqNvsDe.png"},
+  ];
 
-    // Body
-    ctx.fillStyle = '#2d662d';
-    ctx.fillRect(px + 8, py + 12, 16, 16);
-    // Head
-    ctx.fillStyle = '#f1c27d';
-    ctx.fillRect(px + 12, py + 4, 8, 8);
-    // Hair
-    ctx.fillStyle = '#5c3a21';
-    ctx.fillRect(px + 12, py + 2, 8, 4);
-    // Eyes
-    ctx.fillStyle = '#000';
-    ctx.fillRect(px + 14, py + 6, 2, 2);
-    ctx.fillRect(px + 18, py + 6, 2, 2);
+  // NPCs from references placed on map
+  const npcs = [
+    {x: 7, y: 1, img: "https://protoinfrastack.ivondy.com/media/554mOd3C9JCaKMs4P0NnvVjH0qZ1GmM5Ao7o.png"},
+    {x: 16, y: 7, img: "https://protoinfrastack.ivondy.com/media/PwbCf0x2BY6kWezruCHFrcabV61YiBawCQo5.png"},
+    {x: 11, y: 10, img: "https://protoinfrastack.ivondy.com/media/AH6as9LtFPpXbmTQQOAVLuZkgKdrJOSPs5pc.png"},
+  ];
+
+  // Variables for game state
+  let playerPos = {x:1, y:1};
+  let selectedCharIndex = 0;
+  let playerImg = new Image();
+  let npcImages = [];
+  let inQuest = false;
+  let currentQuestionIndex = 0;
+  let currentQuestions = [];
+  let gradeLevel = 1;
+
+  // UI elements
+  const gradeSelect = document.getElementById('gradeSelect');
+  const startBtn = document.getElementById('startBtn');
+  const questionBox = document.getElementById('questionBox');
+  const npcText = document.getElementById('npcText');
+  const answerInput = document.getElementById('answerInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const feedback = document.getElementById('feedback');
+  const charSelectDiv = document.getElementById('charSelect');
+  const bgMusic = document.getElementById('bgMusic');
+
+  // Load images for NPCs
+  npcs.forEach(npc => {
+    const img = new Image();
+    img.src = npc.img;
+    npcImages.push(img);
+  });
+
+  // Load player image
+  function loadPlayerImage() {
+    playerImg.src = characters[selectedCharIndex].img;
   }
 
-  // NPC sprite data (32x32 pixels)
-  // Red shirt, glasses
-  function drawNPC(x, y) {
-    const px = x * tileSize;
-    const py = y * tileSize;
-
-    // Body
-    ctx.fillStyle = '#8b1a1a';
-    ctx.fillRect(px + 8, py + 12, 16, 16);
-    // Head
-    ctx.fillStyle = '#f1c27d';
-    ctx.fillRect(px + 12, py + 4, 8, 8);
-    // Hair
-    ctx.fillStyle = '#3a3a3a';
-    ctx.fillRect(px + 12, py + 2, 8, 4);
-    // Glasses
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 13, py + 5, 6, 4);
-    ctx.beginPath();
-    ctx.moveTo(px + 13, py + 7);
-    ctx.lineTo(px + 19, py + 7);
-    ctx.stroke();
+  // Setup character selection UI
+  function setupCharSelection() {
+    characters.forEach((char, index) => {
+      const div = document.createElement('div');
+      div.classList.add('charOption');
+      if(index === selectedCharIndex) div.classList.add('selected');
+      const img = document.createElement('img');
+      img.src = char.img;
+      img.alt = char.name;
+      div.title = char.name;
+      div.appendChild(img);
+      div.onclick = () => {
+        selectedCharIndex = index;
+        document.querySelectorAll('.charOption').forEach(c => c.classList.remove('selected'));
+        div.classList.add('selected');
+        loadPlayerImage();
+        draw();
+      };
+      charSelectDiv.appendChild(div);
+    });
   }
 
-  // Draw tile map
+  // Draw map tiles
   function drawMap() {
     for(let y=0; y<mapHeight; y++) {
       for(let x=0; x<mapWidth; x++) {
@@ -147,43 +197,51 @@
     }
   }
 
-  // Player position
-  let playerPos = {x:1, y:1};
-  const npcPos = {x:3, y:3};
-
-  // Game state
-  let inQuest = false;
-  let currentQuestion = '';
-  let currentAnswer = null;
-  let difficultyLevel = 1;
-  let gradeLevel = 1;
-
-  // HTML elements
-  const gradeSelect = document.getElementById('gradeSelect');
-  const startBtn = document.getElementById('startBtn');
-  const questionBox = document.getElementById('questionBox');
-  const npcText = document.getElementById('npcText');
-  const answerInput = document.getElementById('answerInput');
-  const submitBtn = document.getElementById('submitBtn');
-  const feedback = document.getElementById('feedback');
-  const bgMusic = document.getElementById('bgMusic');
-
-  // Draw everything
-  function draw() {
-    drawMap();
-    drawNPC(npcPos.x, npcPos.y);
-    drawPlayer(playerPos.x, playerPos.y);
+  // Draw NPCs
+  function drawNPCs() {
+    npcs.forEach((npc, i) => {
+      const img = npcImages[i];
+      if(img.complete) {
+        ctx.drawImage(img, npc.x * tileSize, npc.y * tileSize, tileSize, tileSize);
+      } else {
+        img.onload = () => draw();
+      }
+    });
   }
 
-  // Check if player can move to tile
+  // Draw player
+  function drawPlayer() {
+    if(playerImg.complete) {
+      ctx.drawImage(playerImg, playerPos.x * tileSize, playerPos.y * tileSize, tileSize, tileSize);
+    } else {
+      playerImg.onload = () => draw();
+    }
+  }
+
+  // Redraw everything
+  function draw() {
+    drawMap();
+    drawNPCs();
+    drawPlayer();
+  }
+
+  // Check if tile is walkable (path only)
   function canMove(x,y) {
     if(x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) return false;
     return map[y*mapWidth + x] === 1;
   }
 
-  // Handle keyboard input for movement
+  // Check if player adjacent to any NPC
+  function getNearby(playerPos.x - npc.x);
+      const dy = Math.abs(playerPos.y - npc.y);
+      if((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) return npc;
+    }
+    return null;
+  }
+
+  // Handle player movement
   window.addEventListener('keydown', (e) => {
-    if(inQuest) return; // disable movement during quest
+    if(inQuest) return; // no movement during quest
 
     let newX = playerPos.x;
     let newY = playerPos.y;
@@ -197,26 +255,19 @@
       playerPos.x = newX;
       playerPos.y = newY;
       draw();
-      checkNpcProximity();
+      const npc = getNearbyNPC();
+      if(npc) {
+        npcText.textContent = 'Press "Start Quest" to get a math challenge!';
+      } else {
+        npcText.textContent = 'Walk next to an NPC and start a quest!';
+        if(inQuest) {
+          endQuest();
+        }
+      }
     }
   });
 
-  // Check if player is next to NPC
-  function checkNpcProximity() {
-    const dx = Math.abs(playerPos.x - npcPos.x);
-    const dy = Math.abs(playerPos.y - npcPos.y);
-    if((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
-      npcText.textContent = 'Press "Start Quest" to get a math challenge!';
-    } else {
-      npcText.textContent = 'Walk next to the NPC and start a quest!';
-      if(inQuest) {
-        // If player walks away during quest, cancel quest
-        endQuest();
-      }
-    }
-  }
-
-  // Generate math question based on grade and difficulty
+  // Generate math questions based on grade and difficulty
   function generateQuestion(grade, difficulty) {
     const topics = getTopicsForGrade(grade);
     const topic = topics[Math.floor(Math.random() * topics.length)];
@@ -233,123 +284,4 @@
     if(topic === 'subtraction') {
       const a = randInt(difficulty*5, difficulty*15);
       const b = randInt(difficulty*1, a);
-      return {question: `What is ${a} - ${b}?`, answer: a-b};
-    }
-    if(topic === 'multiplication') {
-      const a = randInt(1, difficulty*5);
-      const b = randInt(1, difficulty*5);
-      return {question: `What is ${a} × ${b}?`, answer: a*b};
-    }
-    if(topic === 'division') {
-      const b = randInt(1, difficulty*5);
-      const answer = randInt(1, difficulty*5);
-      const a = b * answer;
-      return {question: `What is ${a} ÷ ${b}?`, answer: answer};
-    }
-    if(topic === 'fractions') {
-      const numerator = randInt(1, difficulty*3);
-      const denominator = randInt(numerator+1, difficulty*6);
-      const question = `What is ${numerator}/${denominator} + ${numerator}/${denominator}? (Write as fraction)`;
-      const answer = `${numerator*2}/${denominator}`;
-      return {question, answer};
-    }
-    if(topic === 'decimals') {
-      const a = (Math.random() * difficulty * 10).toFixed(2);
-      const b = (Math.random() * difficulty * 10).toFixed(2);
-      const question = `What is ${a} + ${b}? (Round to 2 decimals)`;
-      const answer = (parseFloat(a) + parseFloat(b)).toFixed(2);
-      return {question, answer};
-    }
-    return {question: "What is 1 + 1?", answer: 2};
-  }
-
-  // Topics by grade
-  function getTopicsForGrade(grade) {
-    if(grade >= 1 && grade <= 3) return ['addition','subtraction'];
-    if(grade >= 4 && grade <= 5) return ['addition','subtraction','multiplication'];
-    if(grade >= 6 && grade <= 8) return ['addition','subtraction','multiplication','division','fractions','decimals'];
-    if(grade >= 9 && grade <= 12) return ['addition','subtraction','multiplication','division','fractions','decimals'];
-    return ['addition'];
-  }
-
-  // Start quest button handler
-  startBtn.onclick = () => {
-    const dx = Math.abs(playerPos.x - npcPos.x);
-    const dy = Math.abs(playerPos.y - npcPos.y);
-    if(!((dx === 1 && dy === 0) || (dx === 0 && dy === 1))) {
-      alert('Walk next to the NPC to start a quest!');
-      return;
-    }
-    gradeLevel = parseInt(gradeSelect.value);
-    difficultyLevel = 1;
-    startQuest();
-  };
-
-  // Start quest
-  function startQuest() {
-    inQuest = true;
-    questionBox.style.display = 'block';
-    setNewQuestion();
-    answerInput.focus();
-  }
-
-  // End quest
-  function endQuest() {
-    inQuest = false;
-    questionBox.style.display = 'none';
-    feedback.textContent = '';
-    npcText.textContent = 'Walk next to the NPC and start a quest!';
-  }
-
-  // Set new question
-  function setNewQuestion() {
-    const q = generateQuestion(gradeLevel, difficultyLevel);
-    currentQuestion = q.question;
-    currentAnswer = q.answer;
-    npcText.textContent = currentQuestion;
-    answerInput.value = '';
-    feedback.textContent = '';
-  }
-
-  // Submit answer handler
-  submitBtn.onclick = () => {
-    let playerAnswer = answerInput.value.trim();
-    if(!playerAnswer) {
-      feedback.textContent = 'Please enter an answer.';
-      return;
-    }
-    if(currentAnswer.toString().includes('/')) {
-      if(playerAnswer === currentAnswer) {
-        feedback.textContent = 'Correct! Next question is harder.';
-        difficultyLevel++;
-        setTimeout(setNewQuestion, 1500);
-      } else {
-        feedback.textContent = 'Incorrect. Try again.';
-      }
-    } else {
-      const numAnswer = parseFloat(playerAnswer);
-      if(!isNaN(numAnswer) && Math.abs(numAnswer - currentAnswer) < 0.01) {
-        feedback.textContent = 'Correct! Next question is harder.';
-        difficultyLevel++;
-        setTimeout(setNewQuestion, 1500);
-      } else {
-        feedback.textContent = 'Incorrect. Try again.';
-      }
-    }
-  };
-
-  // Start background music on user interaction
-  window.addEventListener('click', () => {
-    if(bgMusic.paused) {
-      bgMusic.volume = 0.2;
-      bgMusic.play();
-    }
-  }, {once:true});
-
-  // Initial draw
-  draw();
-  checkNpcProximity();
-</script>
-
-</body>
-</html>
+      return {question: `
